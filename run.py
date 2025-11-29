@@ -2,6 +2,9 @@ import os
 import json
 import argparse
 
+import dotenv
+dotenv.load_dotenv()
+
 from tot.tasks import get_task
 from tot.methods.bfs import solve, naive_solve
 from tot.models import gpt_usage
@@ -42,7 +45,7 @@ def run(args):
 
 def parse_args():
     args = argparse.ArgumentParser()
-    args.add_argument('--backend', type=str, choices=['gpt-4', 'gpt-3.5-turbo', 'gpt-4o'], default='gpt-4')
+    args.add_argument('--backend', type=str, choices=['gpt-4o', 'gpt-3.5-turbo', 'gpt-4o'], default='gpt-4o')
     args.add_argument('--temperature', type=float, default=0.7)
 
     args.add_argument('--task', type=str, required=True, choices=['game24', 'text', 'crosswords'])

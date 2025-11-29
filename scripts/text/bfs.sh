@@ -1,5 +1,6 @@
 python run.py \
     --task text \
+    --backend gpt-4o \
     --task_start_index 0 \
     --task_end_index 100 \
     --method_generate sample \
@@ -9,7 +10,7 @@ python run.py \
     --n_evaluate_sample 5 \
     --n_select_sample 1 \
     --prompt_sample cot \
-    --temperature 1.0 \
+    --temperature 0.7 \
     ${@}
 
 
