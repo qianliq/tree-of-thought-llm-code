@@ -114,7 +114,7 @@ Your code here starting with the function definition.
 '''
 
 vote_prompt = '''
-Given an instruction and several choices, decide which choice is most promising. Analyze each choice in detail, then conclude in the last line "The best choice is s", where s the integer id of the choice.
+Given an instruction and several choices, decide which choice is most promising. Analyze each choice in detail, then conclude in the last line "The best choice is {{s}}", where {{s}} is the integer id of the choice.
 
 Problem:
 {input}

@@ -29,10 +29,9 @@ def get_values(task, x, ys, n_evaluate_sample, cache_value=True):
 
 def get_votes(task, x, ys, n_evaluate_sample):
     vote_prompt = task.vote_prompt_wrap(x, ys)
-    # print("IMPORTANT", vote_prompt)
     vote_outputs = gpt(vote_prompt, n=n_evaluate_sample, stop=None)
     values = task.vote_outputs_unwrap(vote_outputs, len(ys))
-    # print("Vote values:", values)
+    print(f"Vote results: {values}")
     return values
 
 def get_proposals(task, x, y): 
@@ -53,13 +52,10 @@ def get_samples(task, x, y, n_generate_sample, prompt_sample, stop):
 def solve(args, task, idx, to_print=True):
     global gpt
     gpt = partial(gpt, model=args.backend, temperature=args.temperature)
-    print(gpt)
     x = task.get_input(idx)  # input
     ys = ['']  # current output candidates
     infos = []
     for step in range(task.steps):
-        print(f"=== Step {step} ===")
-        print("Current candidates:", ys)
         # generation
         if args.method_generate == 'sample':
             new_ys = [get_samples(task, x, y, args.n_generate_sample, prompt_sample=args.prompt_sample, stop=task.stops[step]) for y in ys]
@@ -83,37 +79,23 @@ def solve(args, task, idx, to_print=True):
 
         # log (improved formatting)
         if to_print:
-            pairs = list(sorted(zip(new_ys, values), key=lambda x: x[1], reverse=True))
-            def short(text, maxlen=200):
-                return (text[:maxlen] + '…') if isinstance(text, str) and len(text) > maxlen else text
-            header = f"[Step {step}] candidates={len(new_ys)} select={len(select_new_ys)} method=({args.method_generate}/{args.method_evaluate}/{args.method_select})"
-            print(header)
-            # top 5 preview
-            top_preview = []
-            for rank, (cand, val) in enumerate(pairs[:5], start=1):
-                cleaned = short(cand).replace('\n', ' ')
-                top_preview.append(f"  #{rank} score={val}: {cleaned}")
-            if top_preview:
-                print("Top candidates:")
-                print("\n".join(top_preview))
-            print("Selected:")
-            for i, sel in enumerate(select_new_ys, start=1):
-                cleaned_sel = short(sel).replace('\n', ' ')
-                print(f"  -> [{i}] {cleaned_sel}")
-            print("")
+            print(f"Step {step}: candidates={len(new_ys)}, selected={len(select_new_ys)}")
         
         step_info = {'step': step, 'x': x, 'ys': ys, 'new_ys': new_ys, 'values': values, 'select_new_ys': select_new_ys}
         infos.append(step_info)
         ys = select_new_ys
     
-    if to_print: 
-        print(ys)
     return ys, {'steps': infos}
 
 def naive_solve(args, task, idx, to_print=True):
     global gpt
     gpt = partial(gpt, model=args.backend, temperature=args.temperature)
     print(gpt)
+    x = task.get_input(idx)  # input
+    ys = get_samples(task, x, '', args.n_generate_sample, args.prompt_sample, stop=None)
+    return ys, {}def naive_solve(args, task, idx, to_print=True):
+    global gpt
+    gpt = partial(gpt, model=args.backend, temperature=args.temperature)
     x = task.get_input(idx)  # input
     ys = get_samples(task, x, '', args.n_generate_sample, args.prompt_sample, stop=None)
     return ys, {}

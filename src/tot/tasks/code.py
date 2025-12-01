@@ -232,8 +232,6 @@ class CodeTask(Task):
         # 评审时提供更完整的题目信息
         ctx = self._ctx or {}
         enriched_input = f"{ctx.get('meta','')}\n{ctx.get('problem', x)}"
-        print("problem", ctx.get('problem', x))
-        print("enriched_input", enriched_input)
         if ctx.get('entry_point'):
             enriched_input += f"\n函数入口: {ctx['entry_point']}"
         if ctx.get('tests_text'):
@@ -247,11 +245,19 @@ class CodeTask(Task):
     def vote_outputs_unwrap(vote_outputs: list, n_candidates: int) -> list:
         scores = [0] * n_candidates
         for vote in vote_outputs:
-            m = re.search(r'(\d+)', vote)
+            # 优先匹配 "best choice is X" 格式
+            m = re.search(r'best\s+choice\s+is\s+(\d+)', vote, re.IGNORECASE)
             if m:
                 idx = int(m.group(1)) - 1
                 if 0 <= idx < n_candidates:
                     scores[idx] += 1
+            else:
+                # 降级：提取第一个数字
+                m2 = re.search(r'(\d+)', vote)
+                if m2:
+                    idx = int(m2.group(1)) - 1
+                    if 0 <= idx < n_candidates:
+                        scores[idx] += 1
         return scores
 
     def value_prompt_wrap(self, x: str, y: str) -> str:
