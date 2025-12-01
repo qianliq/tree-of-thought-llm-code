@@ -79,7 +79,8 @@ def solve(args, task, idx, to_print=True):
 
         # log (improved formatting)
         if to_print:
-            print(f"Step {step}: candidates={len(new_ys)}, selected={len(select_new_ys)}")
+            selected_info = ', '.join([f"#{i+1}(score={values[i]})" for i in select_ids])
+            print(f"Step {step}: candidates={len(new_ys)}, selected {len(select_new_ys)}: {selected_info}")
         
         step_info = {'step': step, 'x': x, 'ys': ys, 'new_ys': new_ys, 'values': values, 'select_new_ys': select_new_ys}
         infos.append(step_info)
