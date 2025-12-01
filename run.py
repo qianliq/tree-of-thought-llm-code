@@ -17,7 +17,7 @@ def run(args):
     if args.task == 'code':
         from datetime import datetime
         ts = datetime.now().strftime('%Y%m%d_%H%M%S')
-        file = f'./logs/{args.task}/{args.code_dataset}_{ts}.jsonl'
+        file = f'./logs/{args.task}/{args.backend}_{args.code_dataset}_{ts}.jsonl'
     else:
         if args.naive_run:
             file = f'./logs/{args.task}/{args.backend}_{args.temperature}_naive_{args.prompt_sample}_sample_{args.n_generate_sample}_start{args.task_start_index}_end{args.task_end_index}.json'
