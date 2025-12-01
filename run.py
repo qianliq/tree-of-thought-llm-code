@@ -53,7 +53,7 @@ def run(args):
 
 def parse_args():
     args = argparse.ArgumentParser()
-    args.add_argument('--backend', type=str, choices=['gpt-4o', 'gpt-3.5-turbo', 'gpt-4o-mini'], default='gpt-4o')
+    args.add_argument('--backend', type=str, choices=['gpt-4.1-nano', 'qwen3-coder-plus', 'gpt-4o-mini'], default='gpt-4.1-nano')
     args.add_argument('--temperature', type=float, default=0.7)
 
     args.add_argument('--task', type=str, required=True, choices=['game24', 'text', 'crosswords', 'code'])
