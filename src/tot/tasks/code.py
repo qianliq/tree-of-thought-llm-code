@@ -108,11 +108,8 @@ class CodeTask(Task):
 
         entry_point = self._ctx.get('entry_point') if self._ctx else None
         
-        # 提取 Implementation 部分（类似 text.py 的 split('Passage:\n')[-1]）
-        if '# Implementation:' in output:
-            output = output.split('# Implementation:')[-1].strip()
-
-        code = self._extract_function_code(output, entry_point)
+        # 提取代码：优先提取 markdown 代码块，否则提取 Implementation 部分
+        code = self._extract_code_from_output(output, entry_point)
         info = {
             'task_id': task_id,
             'code': code,
@@ -120,26 +117,47 @@ class CodeTask(Task):
         return info
 
     @staticmethod
+    def _extract_code_from_output(output: str, entry_point: Optional[str]) -> str:
+        """
+        从 AI 输出中提取代码，按以下优先级：
+        1. 提取 markdown 代码块（```python ... ```）
+        2. 提取 # Implementation: 之后的内容
+        3. 如果有 entry_point，提取对应的函数定义
+        4. 返回清理后的全部内容
+        """
+        # 优先提取 markdown 代码块
+        code_block_pattern = r'```python\s*(.*?)```'
+        matches = re.findall(code_block_pattern, output, re.DOTALL)
+        if matches:
+            # 取最后一个代码块（通常是最终实现）
+            code = matches[-1].strip()
+        else:
+            # 降级：提取 # Implementation: 之后的内容
+            if '# Implementation:' in output:
+                code = output.split('# Implementation:')[-1].strip()
+            else:
+                code = output.strip()
+        
+        # 如果有 entry_point，进一步提取对应的函数定义
+        if entry_point and code:
+            code = CodeTask._extract_function_code(code, entry_point)
+        
+        return code
+
+    @staticmethod
     def _extract_function_code(output: str, entry_point: Optional[str]) -> str:
         """
-        规范化提取：
-        - 去除 Markdown 代码块围栏（``` 或 ``````python）。
-        - 只保留首次出现的 `def <entry_point>(...)` 起始的函数实现块。
-        - 函数块结束依据：
-          1) 下一次出现新的顶层 `def ` 或 `class `；
-          2) 文件结束。
-        若未提供 entry_point，则返回去围栏后的整体代码。
+        从代码中提取特定函数定义：
+        - 找到首次出现的 `def <entry_point>(...)` 起始的函数实现块
+        - 函数块结束依据：下一次出现新的顶层 `def ` 或 `class `，或文件结束
+        - 若未提供 entry_point，则返回整体代码
         """
-        # 1) 去除常见 Markdown 围栏
-        cleaned = re.sub(r"```+\w*\n", "", output)  # 开始围栏如 ```python 或 ``````python
-        cleaned = re.sub(r"\n```+\s*$", "\n", cleaned)  # 结束围栏
-
         if not entry_point:
-            return cleaned.strip()
+            return output.strip()
 
-        lines = cleaned.splitlines()
+        lines = output.splitlines()
         start_idx = None
-        # 2) 找到首次出现的入口函数定义
+        # 找到首次出现的入口函数定义
         entry_def_pattern = re.compile(rf"^\s*def\s+{re.escape(entry_point)}\s*\(")
         for i, line in enumerate(lines):
             if entry_def_pattern.search(line):
@@ -147,9 +165,9 @@ class CodeTask(Task):
                 break
 
         if start_idx is None:
-            return cleaned.strip()
+            return output.strip()
 
-        # 3) 从 start_idx 开始，收集到下一个顶层定义或文件结束
+        # 从 start_idx 开始，收集到下一个顶层定义或文件结束
         collected = [lines[start_idx]]
         for j in range(start_idx + 1, len(lines)):
             line = lines[j]

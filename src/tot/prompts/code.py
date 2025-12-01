@@ -23,7 +23,9 @@ Your output should be of the following format:
 Your approach here.
 
 # Implementation:
+```python
 Your code here.
+```
 '''
 
 function_cot_prompt = '''
@@ -44,7 +46,9 @@ Let's think step by step. Your output should be of the following format:
 Your step-by-step approach here.
 
 # Implementation:
+```python
 Your code here starting with "def {entry_point}(...):"
+```
 '''
 
 script_standard_prompt = '''
@@ -67,7 +71,9 @@ Your output should be of the following format:
 Your approach here.
 
 # Implementation:
+```python
 Your complete Python script here.
+```
 '''
 
 script_cot_prompt = '''
@@ -89,7 +95,9 @@ Let's think step by step. Your output should be of the following format:
 Your step-by-step approach here (algorithm, I/O parsing, edge cases).
 
 # Implementation:
+```python
 Your complete Python script here.
+```
 '''
 
 function_h_cot_prompt = '''
@@ -110,7 +118,9 @@ Let's think step by step. Your output should be of the following format:
 Your step-by-step approach here.
 
 # Implementation:
+```python
 Your code here starting with the function definition.
+```
 '''
 
 vote_prompt = '''
