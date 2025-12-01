@@ -15,9 +15,42 @@ if api_base != "":
     print("Warning: OPENAI_API_BASE is set to {}".format(api_base))
     openai.api_base = api_base
 
+# 备用 API 配置
+backup_api_key = os.getenv("BACKUP_OPENAI_API_KEY", "")
+backup_api_base = os.getenv("BACKUP_OPENAI_API_BASE", "")
+
 @backoff.on_exception(backoff.expo, openai.error.OpenAIError)
 def completions_with_backoff(**kwargs):
-    return openai.ChatCompletion.create(**kwargs)
+    try:
+        return openai.ChatCompletion.create(**kwargs)
+    except openai.error.APIError as e:
+        error_message = str(e)
+        # 检查是否是 token 限制错误
+        if "tokens_limit_reached" in error_message or "Request body too large" in error_message:
+            if backup_api_key and backup_api_base:
+                print(f"⚠️  遇到 token 限制错误，切换到备用 API")
+                print(f"   备用 API Base: {backup_api_base}")
+                
+                # 保存原始配置
+                original_api_key = openai.api_key
+                original_api_base = openai.api_base
+                
+                try:
+                    # 切换到备用 API
+                    openai.api_key = backup_api_key
+                    openai.api_base = backup_api_base
+                    
+                    result = openai.ChatCompletion.create(**kwargs)
+                    print("✓ 使用备用 API 成功")
+                    return result
+                finally:
+                    # 恢复原始配置
+                    openai.api_key = original_api_key
+                    openai.api_base = original_api_base
+            else:
+                print("⚠️  遇到 token 限制错误，但未配置备用 API")
+                print("   请设置环境变量: BACKUP_OPENAI_API_KEY 和 BACKUP_OPENAI_API_BASE")
+        raise
 
 def gpt(prompt, model="gpt-4", temperature=0.7, max_tokens=1000, n=1, stop=None) -> list:
     messages = [{"role": "user", "content": prompt}]
