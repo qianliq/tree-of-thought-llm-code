@@ -8,5 +8,9 @@ def get_task(name):
     elif name == 'crosswords':
         from tot.tasks.crosswords import MiniCrosswordsTask
         return MiniCrosswordsTask()
+    elif name == 'code':
+        from tot.tasks.code import CodeTask
+        # CodeTask reads dataset file from env CODE_DATASET
+        return CodeTask()
     else:
         raise NotImplementedError

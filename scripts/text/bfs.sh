@@ -1,6 +1,6 @@
 python run.py \
     --task text \
-    --backend gpt-4o \
+    --backend gpt-4o-mini \
     --task_start_index 0 \
     --task_end_index 100 \
     --method_generate sample \
