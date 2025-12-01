@@ -38,7 +38,7 @@ def run(args):
         if args.task == 'code':
             with open(file, 'a') as f:
                 for rec in infos:
-                    json.dump({'task_id': rec.get('task_id'), 'code': rec.get('code')}, f, ensure_ascii=False)
+                    json.dump({'task_id': rec.get('task_id'), 'solution': rec.get('solution')}, f, ensure_ascii=False)
                     f.write('\n')
         else:
             logs.append(info)
@@ -58,7 +58,7 @@ def parse_args():
 
     args.add_argument('--task', type=str, required=True, choices=['game24', 'text', 'crosswords', 'code'])
     # For code task
-    args.add_argument('--code_dataset', type=str, choices=['mbppplus.jsonl', 'humanevalplus.jsonl', 'code_contests.jsonl'], default='mbppplus.jsonl')
+    args.add_argument('--code_dataset', type=str, choices=['mbppplus.jsonl', 'humanevalplus.jsonl', 'code_contests.jsonl', 'lcb.jsonl'], default='mbppplus.jsonl')
     args.add_argument('--task_start_index', type=int, default=900)
     args.add_argument('--task_end_index', type=int, default=1000)
 

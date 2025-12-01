@@ -69,9 +69,9 @@ class CodeTask(Task):
             meta = f"任务ID: {task_id}"
         elif ds in ('lcb.jsonl', 'code_contests.jsonl'):
             mode = 'script'
+            entry_point = item.get('starter_code', '')
             if item.get('starter_code'):  # lcb dataset with non-empty starter_code
-                entry_point = item.get('starter_code', '')
-                mode = 'func_hs'  # treat as func task
+                mode = 'func_h'  # treat as func task
             task_id = item.get('question_id') or item.get('task_id')
             problem = item.get('question_content') or item.get('prompt', '')
             public_tests = item.get('public_test_cases', [])
@@ -109,10 +109,16 @@ class CodeTask(Task):
         entry_point = self._ctx.get('entry_point') if self._ctx else None
         
         # 提取代码：优先提取 markdown 代码块，否则提取 Implementation 部分
+
         code = self._extract_code_from_output(output, entry_point)
+
+        # import_helper = "from string import *\nfrom re import *\nfrom datetime import *\nfrom collections import *\nfrom heapq import *\nfrom bisect import *\nfrom copy import *\nfrom math import *\nfrom random import *\nfrom statistics import *\nfrom itertools import *\nfrom functools import *\nfrom operator import *\nfrom io import *\nfrom sys import *\nfrom json import *\nfrom builtins import *\nfrom typing import *\nimport string\nimport re\nimport datetime\nimport collections\nimport heapq\nimport bisect\nimport copy\nimport math\nimport random\nimport statistics\nimport itertools\nimport functools\nimport operator\nimport io\nimport sys\nimport json\nsys.setrecursionlimit(50000)\n"
+
+        # code = import_helper + code
+
         info = {
             'task_id': task_id,
-            'code': code,
+            'solution': code,
         }
         return info
 
@@ -232,6 +238,7 @@ class CodeTask(Task):
         # 根据当前样例类型选择 cot 模板
         ctx = self._ctx or {}
         mode = ctx.get('mode', 'func')
+        print("mode:", mode)
         if mode == 'func':
             tpl = function_cot_prompt
         elif mode == 'func_h':

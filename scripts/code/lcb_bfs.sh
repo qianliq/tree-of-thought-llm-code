@@ -1,9 +1,9 @@
 python run.py \
     --task code \
-    --code_dataset humanevalplus.jsonl \
+    --code_dataset lcb.jsonl \
     --backend gpt-4.1-nano \
-    --task_start_index 163 \
-    --task_end_index 164 \
+    --task_start_index 45 \
+    --task_end_index 400 \
     --method_generate sample \
     --method_evaluate vote \
     --method_select greedy \
@@ -13,6 +13,3 @@ python run.py \
     --prompt_sample cot \
     --temperature 0.8 \
     ${@}
-
-
-# 0.3 dollars per line ->  30 dollars for 100 lines

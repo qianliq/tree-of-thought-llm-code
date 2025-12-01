@@ -78,37 +78,10 @@ Your complete Python script here.
 
 script_cot_prompt = '''
 """
-【脚本式题目（cot）】
-题目信息:
-{meta}
-
-题目内容:
+### Question:
 {input}
 
-参考公开测试（stdin / output 格式）：
-{tests}
-"""
-
-Let's think step by step. Your output should be of the following format:
-
-# Approach:
-Your step-by-step approach here (algorithm, I/O parsing, edge cases).
-
-# Implementation:
-```python
-Your complete Python script here.
-```
-'''
-
-function_h_cot_prompt = '''
-"""
-题目内容:
-{input}
-
-函数入口（必须使用该函数名，并且函数定义以此开头）：
-{entry_point}
-
-参考公开测试（用于帮助理解函数行为；无需在代码中打印）：
+Public Test Cases (to help understand function behavior; do not print in code):
 {tests}
 """
 
@@ -118,8 +91,31 @@ Let's think step by step. Your output should be of the following format:
 Your step-by-step approach here.
 
 # Implementation:
+## Format:Read the inputs from stdin solve the problem and write the answer to stdout (do not directly test on the sample inputs). Enclose your code within delimiters as follows. Ensure that when the python program runs, it reads the inputs, runs the algorithm and writes output to STDOUT.
 ```python
-Your code here starting with the function definition.
+Your code here.
+```
+'''
+
+function_h_cot_prompt = '''
+"""
+### Question:
+{input}
+
+Public Test Cases (to help understand function behavior; do not print in code):
+{tests}
+"""
+
+Let's think step by step. Your output should be of the following format:
+
+# Approach:
+Your step-by-step approach here.
+
+# Implementation:
+## Format: You will use the following starter code to write the solution to the problem and enclose your code within delimiters. Do not 
+```python
+Your code here starting with the starter code:
+{entry_point}
 ```
 '''
 
