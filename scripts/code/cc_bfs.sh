@@ -1,9 +1,9 @@
 python run.py \
     --task code \
-    --code_dataset lcb.jsonl \
+    --code_dataset code_contests.jsonl \
     --backend gpt-4.1-nano \
     --task_start_index 0 \
-    --task_end_index 400 \
+    --task_end_index 165 \
     --method_generate sample \
     --method_evaluate vote \
     --method_select greedy \
