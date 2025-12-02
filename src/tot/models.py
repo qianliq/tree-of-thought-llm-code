@@ -70,6 +70,39 @@ def chatgpt(messages, model="gpt-4", temperature=0.7, max_tokens=8000, n=1, stop
         n -= cnt
         res = completions_with_backoff(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens, n=cnt, stop=stop)
         
+        # 记录本次调用的 token 使用情况
+        current_prompt_tokens = 0
+        current_completion_tokens = 0
+        if hasattr(res, 'usage'):
+            current_prompt_tokens = res.usage.prompt_tokens
+            current_completion_tokens = res.usage.completion_tokens
+            total_tokens = res.usage.total_tokens if hasattr(res.usage, 'total_tokens') else current_prompt_tokens + current_completion_tokens
+        elif isinstance(res, dict) and 'usage' in res:
+            current_prompt_tokens = res['usage']['prompt_tokens']
+            current_completion_tokens = res['usage']['completion_tokens']
+            total_tokens = res['usage'].get('total_tokens', current_prompt_tokens + current_completion_tokens)
+        else:
+            total_tokens = 0
+        
+        # 打印 token 使用情况
+        if total_tokens > 0:
+            print(f"📊 Token 使用: prompt={current_prompt_tokens}, completion={current_completion_tokens}, total={total_tokens}")
+        
+        # 检查是否被截断
+        truncated_count = 0
+        for choice in res.choices:
+            finish_reason = None
+            if hasattr(choice, 'finish_reason'):
+                finish_reason = choice.finish_reason
+            elif isinstance(choice, dict) and 'finish_reason' in choice:
+                finish_reason = choice['finish_reason']
+            
+            if finish_reason == 'length':
+                truncated_count += 1
+        
+        if truncated_count > 0:
+            print(f"⚠️  警告: {truncated_count}/{cnt} 个响应因达到 max_tokens 限制而被截断 (max_tokens={max_tokens})")
+        
         # 处理不同的响应格式
         parse_failed = False
         for choice in res.choices:
@@ -140,6 +173,14 @@ def chatgpt(messages, model="gpt-4", temperature=0.7, max_tokens=8000, n=1, stop
                 res = backup_res  # 使用备用 API 的响应来记录 token
                 print(f"✓ 使用备用 API 成功，获得 {len(outputs)} 个响应")
                 
+                # 重新计算备用 API 的 token 使用情况
+                if hasattr(res, 'usage'):
+                    current_prompt_tokens = res.usage.prompt_tokens
+                    current_completion_tokens = res.usage.completion_tokens
+                elif isinstance(res, dict) and 'usage' in res:
+                    current_prompt_tokens = res['usage']['prompt_tokens']
+                    current_completion_tokens = res['usage']['completion_tokens']
+                
             except Exception as backup_error:
                 print(f"✗ 备用 API 也失败: {str(backup_error)[:200]}")
                 # 如果备用 API 也失败，使用原始响应的字符串形式
@@ -155,12 +196,8 @@ def chatgpt(messages, model="gpt-4", temperature=0.7, max_tokens=8000, n=1, stop
             outputs.extend([str(choice) for choice in res.choices if choice not in [o for o in outputs]])
         
         # log completion tokens
-        if hasattr(res, 'usage'):
-            completion_tokens += res.usage.completion_tokens
-            prompt_tokens += res.usage.prompt_tokens
-        elif isinstance(res, dict) and 'usage' in res:
-            completion_tokens += res['usage']['completion_tokens']
-            prompt_tokens += res['usage']['prompt_tokens']
+        completion_tokens += current_completion_tokens
+        prompt_tokens += current_prompt_tokens
     
     return outputs
     
