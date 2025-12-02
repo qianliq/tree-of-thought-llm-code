@@ -15,6 +15,7 @@ import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Tuple, Dict
 import threading
+import time
 
 
 def parse_shell_script(script_path: str) -> Tuple[List[str], Dict[str, str]]:
@@ -101,7 +102,7 @@ def split_range(start: int, end: int, num_workers: int) -> List[Tuple[int, int]]
 
 
 def run_task(worker_id: int, command_parts: List[str], params: Dict[str, str], 
-             start_idx: int, end_idx: int, lock: threading.Lock) -> Tuple[int, int, str]:
+             start_idx: int, end_idx: int, lock: threading.Lock, delay: int = 0) -> Tuple[int, int, str]:
     """
     在子进程中运行单个任务
     
@@ -112,10 +113,17 @@ def run_task(worker_id: int, command_parts: List[str], params: Dict[str, str],
         start_idx: 起始索引
         end_idx: 结束索引
         lock: 用于同步打印的锁
+        delay: 启动延迟（秒）
     
     返回:
         (worker_id, return_code, output): 工作线程ID、返回码和输出
     """
+    # 如果有延迟，先等待
+    if delay > 0:
+        with lock:
+            print(f"⏱️  Worker {worker_id}: 等待 {delay} 秒后启动...")
+        time.sleep(delay)
+    
     # 构建命令
     cmd = command_parts.copy()
     
@@ -192,6 +200,7 @@ def main():
     parser.add_argument('--num_workers', type=int, default=4, help='并行工作线程数 (默认: 4)')
     parser.add_argument('--override_start', type=int, help='覆盖脚本中的起始索引')
     parser.add_argument('--override_end', type=int, help='覆盖脚本中的结束索引')
+    parser.add_argument('--start_delay', type=int, default=5, help='每个 worker 的启动间隔（秒），默认: 5')
     
     args = parser.parse_args()
     
@@ -210,13 +219,15 @@ def main():
     
     print(f"📊 任务范围: ({start_idx}, {end_idx}]")
     print(f"👥 并行数: {args.num_workers}")
+    print(f"⏱️  启动间隔: {args.start_delay} 秒")
     
     # 拆分任务范围
     ranges = split_range(start_idx, end_idx, args.num_workers)
     
     print(f"\n📋 任务分配:")
     for i, (s, e) in enumerate(ranges):
-        print(f"   Worker {i}: ({s}, {e}] - {e - s} 个任务")
+        delay = i * args.start_delay
+        print(f"   Worker {i}: ({s}, {e}] - {e - s} 个任务 (延迟 {delay}s)")
     
     # 创建线程锁用于同步输出
     lock = threading.Lock()
@@ -230,7 +241,8 @@ def main():
     with ThreadPoolExecutor(max_workers=args.num_workers) as executor:
         futures = []
         for worker_id, (s, e) in enumerate(ranges):
-            future = executor.submit(run_task, worker_id, command_parts, params, s, e, lock)
+            delay = worker_id * args.start_delay
+            future = executor.submit(run_task, worker_id, command_parts, params, s, e, lock, delay)
             futures.append(future)
         
         # 等待所有任务完成
