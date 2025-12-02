@@ -58,11 +58,11 @@ def completions_with_backoff(**kwargs):
             print("   请设置环境变量: BACKUP_OPENAI_API_KEY 和 BACKUP_OPENAI_API_BASE")
             raise
 
-def gpt(prompt, model="gpt-4", temperature=0.7, max_tokens=1000, n=1, stop=None) -> list:
+def gpt(prompt, model="gpt-4", temperature=0.7, max_tokens=8000, n=1, stop=None) -> list:
     messages = [{"role": "user", "content": prompt}]
     return chatgpt(messages, model=model, temperature=temperature, max_tokens=max_tokens, n=n, stop=stop)
     
-def chatgpt(messages, model="gpt-4", temperature=0.7, max_tokens=1000, n=1, stop=None) -> list:
+def chatgpt(messages, model="gpt-4", temperature=0.7, max_tokens=8000, n=1, stop=None) -> list:
     global completion_tokens, prompt_tokens
     outputs = []
     while n > 0:
