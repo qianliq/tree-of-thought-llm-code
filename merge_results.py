@@ -237,6 +237,9 @@ def interactive_mode():
     # 输入数据集路径
     while True:
         dataset_path = input("📖 请输入数据集文件路径: ").strip()
+        # 移除可能的引号
+        dataset_path = dataset_path.strip("'\"")
+        
         if not dataset_path:
             print("❌ 数据集路径不能为空")
             continue
@@ -259,6 +262,8 @@ def interactive_mode():
     while True:
         prompt = f"   结果文件 #{line_num}: "
         result_path = input(prompt).strip()
+        # 移除可能的引号
+        result_path = result_path.strip("'\"")
         
         if not result_path:
             # 空行，结束输入
@@ -267,26 +272,55 @@ def interactive_mode():
                 continue
             break
         
-        # 支持通配符
-        matches = list(Path('.').glob(result_path))
-        if matches:
-            for match in matches:
-                if str(match) not in result_files:
-                    result_files.append(str(match))
-                    print(f"      ✓ 添加: {match}")
-        else:
-            # 不是通配符，直接检查文件
-            if Path(result_path).exists():
+        # 检查是否是绝对路径
+        path_obj = Path(result_path)
+        if path_obj.is_absolute():
+            # 绝对路径，直接检查文件是否存在
+            if path_obj.exists():
                 if result_path not in result_files:
                     result_files.append(result_path)
                     print(f"      ✓ 添加: {result_path}")
                 else:
                     print(f"      ⚠️  已存在: {result_path}")
             else:
-                print(f"      ❌ 文件不存在: {result_path}")
-                print("      是否继续添加其他文件? (y/n): ", end='')
-                if input().strip().lower() != 'y':
-                    continue
+                # 可能是绝对路径的通配符，尝试使用父目录进行 glob
+                if '*' in result_path or '?' in result_path:
+                    parent = path_obj.parent
+                    pattern = path_obj.name
+                    matches = list(parent.glob(pattern))
+                    if matches:
+                        for match in matches:
+                            if str(match) not in result_files:
+                                result_files.append(str(match))
+                                print(f"      ✓ 添加: {match}")
+                    else:
+                        print(f"      ❌ 没有匹配的文件: {result_path}")
+                else:
+                    print(f"      ❌ 文件不存在: {result_path}")
+                    print("      是否继续添加其他文件? (y/n): ", end='')
+                    if input().strip().lower() != 'y':
+                        continue
+        else:
+            # 相对路径，支持通配符
+            matches = list(Path('.').glob(result_path))
+            if matches:
+                for match in matches:
+                    if str(match) not in result_files:
+                        result_files.append(str(match))
+                        print(f"      ✓ 添加: {match}")
+            else:
+                # 不是通配符，直接检查文件
+                if Path(result_path).exists():
+                    if result_path not in result_files:
+                        result_files.append(result_path)
+                        print(f"      ✓ 添加: {result_path}")
+                    else:
+                        print(f"      ⚠️  已存在: {result_path}")
+                else:
+                    print(f"      ❌ 文件不存在: {result_path}")
+                    print("      是否继续添加其他文件? (y/n): ", end='')
+                    if input().strip().lower() != 'y':
+                        continue
         
         line_num += 1
     
