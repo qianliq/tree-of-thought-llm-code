@@ -69,10 +69,47 @@ def chatgpt(messages, model="gpt-4", temperature=0.7, max_tokens=1000, n=1, stop
         cnt = min(n, 20)
         n -= cnt
         res = completions_with_backoff(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens, n=cnt, stop=stop)
-        outputs.extend([choice.message.content for choice in res.choices])
+        
+        # 处理不同的响应格式
+        for choice in res.choices:
+            try:
+                # 尝试标准的 ChatCompletion 格式
+                if hasattr(choice, 'message') and hasattr(choice.message, 'content'):
+                    content = choice.message.content
+                # 尝试旧版 Completion 格式
+                elif hasattr(choice, 'text'):
+                    content = choice.text
+                # 尝试字典格式
+                elif isinstance(choice, dict):
+                    if 'message' in choice and 'content' in choice['message']:
+                        content = choice['message']['content']
+                    elif 'text' in choice:
+                        content = choice['text']
+                    else:
+                        print(f"⚠️  未知的响应格式，choice keys: {choice.keys()}")
+                        print(f"   choice 内容: {choice}")
+                        content = str(choice)
+                else:
+                    print(f"⚠️  未知的 choice 类型: {type(choice)}")
+                    print(f"   choice 内容: {choice}")
+                    content = str(choice)
+                
+                outputs.append(content)
+            except Exception as e:
+                print(f"⚠️  解析响应内容时出错: {e}")
+                print(f"   choice 类型: {type(choice)}")
+                print(f"   choice 内容: {choice}")
+                # 尝试直接转换为字符串
+                outputs.append(str(choice))
+        
         # log completion tokens
-        completion_tokens += res.usage.completion_tokens
-        prompt_tokens += res.usage.prompt_tokens
+        if hasattr(res, 'usage'):
+            completion_tokens += res.usage.completion_tokens
+            prompt_tokens += res.usage.prompt_tokens
+        elif isinstance(res, dict) and 'usage' in res:
+            completion_tokens += res['usage']['completion_tokens']
+            prompt_tokens += res['usage']['prompt_tokens']
+    
     return outputs
     
 def gpt_usage(backend="gpt-4"):
