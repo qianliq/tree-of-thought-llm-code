@@ -23,34 +23,40 @@ backup_api_base = os.getenv("BACKUP_OPENAI_API_BASE", "")
 def completions_with_backoff(**kwargs):
     try:
         return openai.ChatCompletion.create(**kwargs)
-    except openai.error.APIError as e:
+    except openai.error.OpenAIError as e:
         error_message = str(e)
-        # 检查是否是 token 限制错误
-        if "tokens_limit_reached" in error_message or "Request body too large" in error_message:
-            if backup_api_key and backup_api_base:
-                print(f"⚠️  遇到 token 限制错误，切换到备用 API")
-                print(f"   备用 API Base: {backup_api_base}")
+        error_type = type(e).__name__
+        
+        # 对所有 OpenAI 错误都尝试使用备用 API
+        if backup_api_key and backup_api_base:
+            print(f"⚠️  遇到 API 错误 ({error_type})，切换到备用 API")
+            print(f"   错误信息: {error_message[:200]}...")
+            print(f"   备用 API Base: {backup_api_base}")
+            
+            # 保存原始配置
+            original_api_key = openai.api_key
+            original_api_base = openai.api_base
+            
+            try:
+                # 切换到备用 API
+                openai.api_key = backup_api_key
+                openai.api_base = backup_api_base
                 
-                # 保存原始配置
-                original_api_key = openai.api_key
-                original_api_base = openai.api_base
-                
-                try:
-                    # 切换到备用 API
-                    openai.api_key = backup_api_key
-                    openai.api_base = backup_api_base
-                    
-                    result = openai.ChatCompletion.create(**kwargs)
-                    print("✓ 使用备用 API 成功")
-                    return result
-                finally:
-                    # 恢复原始配置
-                    openai.api_key = original_api_key
-                    openai.api_base = original_api_base
-            else:
-                print("⚠️  遇到 token 限制错误，但未配置备用 API")
-                print("   请设置环境变量: BACKUP_OPENAI_API_KEY 和 BACKUP_OPENAI_API_BASE")
-        raise
+                result = openai.ChatCompletion.create(**kwargs)
+                print("✓ 使用备用 API 成功")
+                return result
+            except Exception as backup_error:
+                print(f"✗ 备用 API 也失败: {str(backup_error)[:200]}")
+                raise e  # 抛出原始错误
+            finally:
+                # 恢复原始配置
+                openai.api_key = original_api_key
+                openai.api_base = original_api_base
+        else:
+            print(f"⚠️  遇到 API 错误 ({error_type})，但未配置备用 API")
+            print(f"   错误信息: {error_message[:200]}...")
+            print("   请设置环境变量: BACKUP_OPENAI_API_KEY 和 BACKUP_OPENAI_API_BASE")
+            raise
 
 def gpt(prompt, model="gpt-4", temperature=0.7, max_tokens=1000, n=1, stop=None) -> list:
     messages = [{"role": "user", "content": prompt}]
