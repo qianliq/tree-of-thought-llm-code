@@ -69,7 +69,7 @@ def parse_shell_script(script_path: str) -> Tuple[List[str], Dict[str, str]]:
 
 def split_range(start: int, end: int, num_workers: int) -> List[Tuple[int, int]]:
     """
-    将任务范围拆分成 num_workers 个子范围
+    将任务范围拆分成 num_workers 个子范围，尽可能均衡分配
     注意: 为了避免跳过索引，使用重叠的范围 (如 0-32, 32-64)
     范围表示为 (start, end]，即不包含 start，包含 end
     
@@ -80,23 +80,34 @@ def split_range(start: int, end: int, num_workers: int) -> List[Tuple[int, int]]
     
     返回:
         [(start1, end1), (start2, end2), ...] 范围列表
+        
+    示例:
+        380 个任务，100 个 worker:
+        - 80 个 worker 分配 4 个任务
+        - 20 个 worker 分配 3 个任务
     """
     total_tasks = end - start
-    tasks_per_worker = max(1, total_tasks // num_workers)
+    
+    # 如果任务数少于 worker 数，只使用需要的 worker 数
+    if total_tasks <= 0:
+        return []
+    
+    actual_workers = min(num_workers, total_tasks)
+    
+    # 计算基本任务数和余数
+    base_tasks = total_tasks // actual_workers
+    remainder = total_tasks % actual_workers
     
     ranges = []
     current_start = start
     
-    for i in range(num_workers):
-        if i == num_workers - 1:
-            # 最后一个worker处理剩余所有任务
-            current_end = end
-        else:
-            current_end = current_start + tasks_per_worker
+    for i in range(actual_workers):
+        # 前 remainder 个 worker 多分配一个任务
+        tasks_for_this_worker = base_tasks + (1 if i < remainder else 0)
+        current_end = current_start + tasks_for_this_worker
         
-        if current_start < end:
-            ranges.append((current_start, current_end))
-            current_start = current_end  # 下一个范围从这个结束位置开始（重叠1个）
+        ranges.append((current_start, current_end))
+        current_start = current_end
     
     return ranges
 

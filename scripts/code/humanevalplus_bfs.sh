@@ -1,8 +1,8 @@
 python run.py \
     --task code \
     --code_dataset humanevalplus.jsonl \
-    --backend gpt-4.1-nano \
-    --task_start_index 163 \
+    --backend qwen3-coder-plus \
+    --task_start_index 0 \
     --task_end_index 164 \
     --method_generate sample \
     --method_evaluate vote \

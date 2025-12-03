@@ -252,77 +252,135 @@ def interactive_mode():
     
     print(f"✓ 数据集: {dataset_path}\n")
     
-    # 输入结果文件路径
-    print("📝 请输入结果文件路径（支持通配符）")
-    print("   提示: 每行一个文件路径，输入空行结束\n")
-    
-    result_files = []
-    line_num = 1
+    # 选择输入模式
+    print("📝 请选择结果文件输入模式:")
+    print("   1. 逐个输入文件路径（支持通配符）")
+    print("   2. 指定目录（自动收集目录下所有 .jsonl 文件）")
     
     while True:
-        prompt = f"   结果文件 #{line_num}: "
-        result_path = input(prompt).strip()
-        # 移除可能的引号
-        result_path = result_path.strip("'\"")
-        
-        if not result_path:
-            # 空行，结束输入
-            if not result_files:
-                print("❌ 至少需要一个结果文件")
+        mode = input("\n请选择 (1/2): ").strip()
+        if mode in ['1', '2']:
+            break
+        print("❌ 无效选择，请输入 1 或 2")
+    
+    result_files = []
+    
+    if mode == '2':
+        # 目录模式
+        while True:
+            result_dir = input("\n📂 请输入结果文件目录: ").strip().strip("'\"")
+            
+            if not result_dir:
+                print("❌ 目录路径不能为空")
                 continue
+            
+            dir_path = Path(result_dir)
+            if not dir_path.exists():
+                print(f"❌ 目录不存在: {result_dir}")
+                continue
+            
+            if not dir_path.is_dir():
+                print(f"❌ 不是有效的目录: {result_dir}")
+                continue
+            
             break
         
-        # 检查是否是绝对路径
-        path_obj = Path(result_path)
-        if path_obj.is_absolute():
-            # 绝对路径，直接检查文件是否存在
-            if path_obj.exists():
-                if result_path not in result_files:
-                    result_files.append(result_path)
-                    print(f"      ✓ 添加: {result_path}")
-                else:
-                    print(f"      ⚠️  已存在: {result_path}")
-            else:
-                # 可能是绝对路径的通配符，尝试使用父目录进行 glob
-                if '*' in result_path or '?' in result_path:
-                    parent = path_obj.parent
-                    pattern = path_obj.name
-                    matches = list(parent.glob(pattern))
-                    if matches:
-                        for match in matches:
-                            if str(match) not in result_files:
-                                result_files.append(str(match))
-                                print(f"      ✓ 添加: {match}")
-                    else:
-                        print(f"      ❌ 没有匹配的文件: {result_path}")
-                else:
-                    print(f"      ❌ 文件不存在: {result_path}")
-                    print("      是否继续添加其他文件? (y/n): ", end='')
-                    if input().strip().lower() != 'y':
-                        continue
+        # 询问是否需要过滤
+        print("\n🔍 是否需要过滤文件名？")
+        print("   示例: *_lcb_*.jsonl, *humanevalplus*.jsonl")
+        pattern = input("   文件模式 (直接回车使用 *.jsonl): ").strip()
+        
+        if not pattern:
+            pattern = "*.jsonl"
+        
+        # 收集文件
+        matches = list(dir_path.glob(pattern))
+        if matches:
+            result_files = [str(f) for f in matches if f.is_file()]
+            print(f"\n✓ 找到 {len(result_files)} 个文件:")
+            for i, f in enumerate(result_files[:10], 1):
+                print(f"   {i}. {Path(f).name}")
+            if len(result_files) > 10:
+                print(f"   ... 还有 {len(result_files) - 10} 个文件")
         else:
-            # 相对路径，支持通配符
-            matches = list(Path('.').glob(result_path))
-            if matches:
-                for match in matches:
-                    if str(match) not in result_files:
-                        result_files.append(str(match))
-                        print(f"      ✓ 添加: {match}")
+            print(f"\n❌ 没有找到匹配的文件: {pattern}")
+            print("是否继续使用逐个输入模式? (y/n): ", end='')
+            if input().strip().lower() == 'y':
+                mode = '1'
             else:
-                # 不是通配符，直接检查文件
-                if Path(result_path).exists():
+                sys.exit(1)
+    
+    if mode == '1':
+        # 逐个输入模式
+        print("\n📝 请输入结果文件路径（支持通配符）")
+        print("   提示: 每行一个文件路径，输入空行结束\n")
+        
+        line_num = 1
+        
+        while True:
+            prompt = f"   结果文件 #{line_num}: "
+            result_path = input(prompt).strip()
+            # 移除可能的引号
+            result_path = result_path.strip("'\"")
+            
+            if not result_path:
+                # 空行，结束输入
+                if not result_files:
+                    print("❌ 至少需要一个结果文件")
+                    continue
+                break
+            
+            # 检查是否是绝对路径
+            path_obj = Path(result_path)
+            if path_obj.is_absolute():
+                # 绝对路径，直接检查文件是否存在
+                if path_obj.exists():
                     if result_path not in result_files:
                         result_files.append(result_path)
                         print(f"      ✓ 添加: {result_path}")
                     else:
                         print(f"      ⚠️  已存在: {result_path}")
                 else:
-                    print(f"      ❌ 文件不存在: {result_path}")
-                    print("      是否继续添加其他文件? (y/n): ", end='')
-                    if input().strip().lower() != 'y':
-                        continue
-        
-        line_num += 1
+                    # 可能是绝对路径的通配符，尝试使用父目录进行 glob
+                    if '*' in result_path or '?' in result_path:
+                        parent = path_obj.parent
+                        pattern = path_obj.name
+                        matches = list(parent.glob(pattern))
+                        if matches:
+                            for match in matches:
+                                if str(match) not in result_files:
+                                    result_files.append(str(match))
+                                    print(f"      ✓ 添加: {match}")
+                        else:
+                            print(f"      ❌ 没有匹配的文件: {result_path}")
+                    else:
+                        print(f"      ❌ 文件不存在: {result_path}")
+                        print("      是否继续添加其他文件? (y/n): ", end='')
+                        if input().strip().lower() != 'y':
+                            continue
+            else:
+                # 相对路径，支持通配符
+                matches = list(Path('.').glob(result_path))
+                if matches:
+                    for match in matches:
+                        if str(match) not in result_files:
+                            result_files.append(str(match))
+                            print(f"      ✓ 添加: {match}")
+                else:
+                    # 不是通配符，直接检查文件
+                    if Path(result_path).exists():
+                        if result_path not in result_files:
+                            result_files.append(result_path)
+                            print(f"      ✓ 添加: {result_path}")
+                        else:
+                            print(f"      ⚠️  已存在: {result_path}")
+                    else:
+                        print(f"      ❌ 文件不存在: {result_path}")
+                        print("      是否继续添加其他文件? (y/n): ", end='')
+                        if input().strip().lower() != 'y':
+                            continue
+            
+            line_num += 1
     
     if not result_files:
         print("\n❌ 错误: 没有有效的结果文件")
@@ -375,6 +433,17 @@ def main():
         --results logs/code/*_lcb_*.jsonl \\
         --output merged_lcb.jsonl
     
+    # 目录模式（自动收集目录下所有 .jsonl 文件）
+    python merge_results.py --dataset data/humanevalplus.jsonl \\
+        --result-dir logs/code \\
+        --output merged.jsonl
+    
+    # 目录模式 + 模式过滤
+    python merge_results.py --dataset data/lcb.jsonl \\
+        --result-dir logs/code \\
+        --pattern "*_lcb_*.jsonl" \\
+        --output merged_lcb.jsonl
+    
     # 静默模式
     python merge_results.py --dataset data.jsonl \\
         --results result*.jsonl \\
@@ -387,6 +456,10 @@ def main():
                         help='数据集 JSONL 文件路径')
     parser.add_argument('--results', '-r', nargs='+',
                         help='结果 JSONL 文件路径（可以多个）')
+    parser.add_argument('--result-dir', '--dir',
+                        help='结果文件所在目录（自动收集该目录下所有 .jsonl 文件）')
+    parser.add_argument('--pattern', '-p',
+                        help='文件名模式（用于过滤 --result-dir 中的文件，如 "*_lcb_*.jsonl"）')
     parser.add_argument('--output', '-o',
                         help='输出合并后的 JSONL 文件路径')
     parser.add_argument('--quiet', '-q', action='store_true',
@@ -395,7 +468,7 @@ def main():
     args = parser.parse_args()
     
     # 如果没有提供参数，进入交互模式
-    if not args.dataset or not args.results:
+    if not args.dataset or (not args.results and not args.result_dir):
         interactive_mode()
         return
     
@@ -409,18 +482,48 @@ def main():
         print(f"❌ 错误: 数据集文件不存在: {args.dataset}")
         sys.exit(1)
     
-    # 展开结果文件路径（支持通配符）
+    # 收集结果文件
     result_files = []
-    for pattern in args.results:
-        matches = list(Path('.').glob(pattern))
+    
+    # 如果指定了目录模式
+    if args.result_dir:
+        result_dir = Path(args.result_dir)
+        if not result_dir.exists():
+            print(f"❌ 错误: 结果目录不存在: {args.result_dir}")
+            sys.exit(1)
+        
+        if not result_dir.is_dir():
+            print(f"❌ 错误: 不是有效的目录: {args.result_dir}")
+            sys.exit(1)
+        
+        # 使用模式过滤，默认为所有 .jsonl 文件
+        pattern = args.pattern if args.pattern else "*.jsonl"
+        
+        if not args.quiet:
+            print(f"📂 从目录收集结果文件: {args.result_dir}")
+            print(f"   文件模式: {pattern}")
+        
+        # 收集目录下的所有匹配文件
+        matches = list(result_dir.glob(pattern))
         if matches:
-            result_files.extend([str(f) for f in matches])
+            result_files.extend([str(f) for f in matches if f.is_file()])
+            if not args.quiet:
+                print(f"   找到 {len(result_files)} 个文件")
         else:
-            # 如果不是通配符，直接添加
-            if Path(pattern).exists():
-                result_files.append(pattern)
+            print(f"⚠️  警告: 目录中没有找到匹配的文件: {pattern}")
+    
+    # 如果指定了具体的结果文件
+    if args.results:
+        for pattern in args.results:
+            matches = list(Path('.').glob(pattern))
+            if matches:
+                result_files.extend([str(f) for f in matches])
             else:
-                print(f"⚠️  警告: 结果文件不存在: {pattern}")
+                # 如果不是通配符，直接添加
+                if Path(pattern).exists():
+                    result_files.append(pattern)
+                else:
+                    print(f"⚠️  警告: 结果文件不存在: {pattern}")
     
     if not result_files:
         print(f"❌ 错误: 没有找到任何结果文件")

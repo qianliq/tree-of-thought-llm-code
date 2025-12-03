@@ -1,8 +1,8 @@
 python run.py \
     --task code \
     --code_dataset mbppplus.jsonl \
-    --backend gpt-4o-mini \
-    --task_start_index 377 \
+    --backend qwen3-coder-plus \
+    --task_start_index 304 \
     --task_end_index 378 \
     --method_generate sample \
     --method_evaluate vote \

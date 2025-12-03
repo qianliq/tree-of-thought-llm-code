@@ -1,7 +1,7 @@
 python run.py \
     --task code \
     --code_dataset code_contests.jsonl \
-    --backend gpt-4.1-nano \
+    --backend qwen3-coder-plus \
     --task_start_index 0 \
     --task_end_index 165 \
     --method_generate sample \
